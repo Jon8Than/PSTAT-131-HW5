@@ -1,6 +1,6 @@
 ---
-title: "Homework 5"
-author: "PSTAT 131/231"
+title: "Homework 5 (PSTAT 131/231)"
+author: "Jonathan Palada Rosal"
 output:
     html_document:
       toc: true
@@ -27,9 +27,28 @@ The goal of this assignment is to build a statistical learning model that can pr
 
 Read in the file and familiarize yourself with the variables using `pokemon_codebook.txt`.
 
+```{r}
+library(glmnet)
+library(tidyverse)
+library(tidymodels)
+library(ISLR)
+library(ggplot2)
+library(dplyr)
+```
+
 ### Exercise 1
 
 Install and load the `janitor` package. Use its `clean_names()` function on the Pokémon data, and save the results to work with for the rest of the assignment. What happened to the data? Why do you think `clean_names()` is useful?
+```{r}
+library(janitor)
+
+Pokemon <- read.csv("C:\\Users\\Jonat\\OneDrive\\schoolwork\\PSTAT 131\\HW\\HW 5\\homework-5\\data\\Pokemon.csv")
+Pokemon
+Pokemon <- Pokemon %>%
+  clean_names()
+Pokemon
+```
+The clean_names() function just renamed or "cleaned" the predictor's names so it will be easier to code with.
 
 ### Exercise 2
 
@@ -41,11 +60,47 @@ For this assignment, we'll handle the rarer classes by simply filtering them out
 
 After filtering, convert `type_1` and `legendary` to factors.
 
+```{r}
+type1 <- table(Pokemon$type_1)
+type1
+barplot(type1, xlab = "Pokemon Type", ylab = "Pokemon in that type", main = "Pokemon",width = 0.1, cex.names = 0.3,col = c("red", "green", "yellow", "blue"))
+
+Pokemon %>%
+  group_by(type_1) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) # 18 types of Pokemon. Flying has the least types in this dataset (4). Fairy (17) and Ice (24) are followed up with the least amount of Pokemon in that type.
+
+Common_pokemon_types <- Pokemon %>%
+   filter(type_1 == "Bug" | type_1 == "Fire" | type_1 == "Grass" | type_1 == "Normal" | type_1 == "Water" | type_1 == "Psychic")
+Common_pokemon_types %>%
+  group_by(type_1) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) #Now there are only 6 types
+
+Pokemon_factored <- Common_pokemon_types %>%
+  mutate(type_1 = factor(type_1)) %>%
+  mutate(legendary = factor(legendary)) %>%
+  mutate(generation = factor(generation))
+```
+
+
 ### Exercise 3
 
 Perform an initial split of the data. Stratify by the outcome variable. You can choose a proportion to use. Verify that your training and test sets have the desired number of observations.
 
 Next, use *v*-fold cross-validation on the training set. Use 5 folds. Stratify the folds by `type_1` as well. *Hint: Look for a `strata` argument.* Why might stratifying the folds be useful?
+
+```{r}
+set.seed(3515)
+Pokemon_split <- initial_split(Pokemon_factored, strata = type_1, prop = 0.7)
+Pokemon_training <- training(Pokemon_split)
+Pokemon_testing <- testing(Pokemon_split)
+dim(Pokemon_training) #318 observations
+dim(Pokemon_testing) #140 observations
+
+Pokemon_fold <- vfold_cv(Pokemon_training, strata = type_1, v = 5)
+Pokemon_fold #Stratifying the folds will be useful because it will make sure there is a balance distribution of the types to make sure the folds are as fair as possible.
+```
 
 ### Exercise 4
 
@@ -55,6 +110,14 @@ Set up a recipe to predict `type_1` with `legendary`, `generation`, `sp_atk`, `a
 
 - Center and scale all predictors.
 
+```{r}
+Pokemon_recipe <- recipe(type_1 ~ legendary + generation + sp_atk + attack + speed + defense + hp + sp_def, data = Pokemon_training) %>%
+  step_dummy(legendary) %>%
+  step_dummy(generation) %>%
+  step_center(all_predictors()) %>%
+  step_scale(all_predictors())
+```
+
 ### Exercise 5
 
 We'll be fitting and tuning an elastic net, tuning `penalty` and `mixture` (use `multinom_reg` with the `glmnet` engine).
@@ -63,15 +126,41 @@ Set up this model and workflow. Create a regular grid for `penalty` and `mixture
 
 How many total models will you be fitting when you fit these models to your folded data?
 
+```{r}
+Pokemon_net <- multinom_reg(penalty = tune(), mixture = tune()) %>%
+  set_engine("glmnet")
+Pokemon_workflow <- workflow() %>%
+  add_recipe(Pokemon_recipe) %>%
+  add_model(Pokemon_net)
+Pokemon_grid <- grid_regular(penalty(range = c(-5,5)), mixture(range = c(0,1)), levels = 10)
+Pokemon_grid #We have 100 rows and we will be doing it 5 times so we will have a total of 500 models.
+```
+
 ### Exercise 6
 
 Fit the models to your folded data using `tune_grid()`.
 
 Use `autoplot()` on the results. What do you notice? Do larger or smaller values of `penalty` and `mixture` produce better accuracy and ROC AUC?
 
+```{r}
+Pokemon_tune_grid <- tune_grid(object = Pokemon_workflow,
+                               resamples = Pokemon_fold,
+                               grid = Pokemon_grid)
+autoplot(Pokemon_tune_grid) #The smaller values of penalty and mixture  have a better accuracy and ROC AUC than the larger values of penalty and mixture. This means as the penalty and mixture increase, the accuracy and ROC AUC decreases.
+```
+
 ### Exercise 7
 
 Use `select_best()` to choose the model that has the optimal `roc_auc`. Then use `finalize_workflow()`, `fit()`, and `augment()` to fit the model to the training set and evaluate its performance on the testing set.
+```{r}
+best_fit <- select_best(Pokemon_tune_grid, metric = "roc_auc")
+Pokemon_finalized <- finalize_workflow(Pokemon_workflow, best_fit)
+Pokemon_final_fit <- fit(Pokemon_finalized, data = Pokemon_training)
+
+Prediction <- augment(Pokemon_final_fit, new_data = Pokemon_testing) %>%
+  select(type_1, .pred_class, .pred_Bug, .pred_Fire, .pred_Grass, .pred_Normal, .pred_Psychic, .pred_Water)
+accuracy(Prediction,type_1,.pred_class)
+```
 
 ### Exercise 8
 
@@ -80,10 +169,12 @@ Calculate the overall ROC AUC on the testing set.
 Then create plots of the different ROC curves, one per level of the outcome. Also make a heat map of the confusion matrix.
 
 What do you notice? How did your model do? Which Pokemon types is the model best at predicting, and which is it worst at? Do you have any ideas why this might be?
+```{r}
+Prediction %>%
+  roc_curve(type_1, .pred_Bug, .pred_Fire, .pred_Grass, .pred_Normal, .pred_Psychic, .pred_Water) %>%
+  autoplot()
 
-## For 231 Students
-
-### Exercise 9
-
-In the 2020-2021 season, Stephen Curry, an NBA basketball player, made 337 out of 801 three point shot attempts (42.1%). Use bootstrap resampling on a sequence of 337 1’s (makes) and 464 0’s (misses). For each bootstrap sample, compute and save the sample mean (e.g. bootstrap FG% for the player). Use 1000 bootstrap samples to plot a histogram of those values. Compute the 99% bootstrap confidence interval for Stephen Curry’s “true” end-of-season
-FG% using the quantile function in R. Print the endpoints of this interval.
+Prediction %>%
+  conf_mat(type_1, .pred_class) %>%
+  autoplot(type = "heatmap")
+```
