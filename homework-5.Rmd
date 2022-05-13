@@ -2,10 +2,12 @@
 title: "Homework 5 (PSTAT 131/231)"
 author: "Jonathan Palada Rosal"
 output:
-    html_document:
-      toc: true
-      toc_float: true
-      code_folding: show
+  pdf_document:
+    toc: yes
+  html_document:
+    toc: yes
+    toc_float: yes
+    code_folding: show
 ---
 
 ```{r setup, include=FALSE}
@@ -21,7 +23,7 @@ The [Pokémon](https://www.pokemon.com/us/) franchise encompasses video games, T
 
 Each Pokémon has a [primary type](https://bulbapedia.bulbagarden.net/wiki/Type) (some even have secondary types). Based on their type, a Pokémon is strong against some types, and vulnerable to others. (Think rock, paper, scissors.) A Fire-type Pokémon, for example, is vulnerable to Water-type Pokémon, but strong against Grass-type.
 
-![Fig 1. Vulpix, a Fire-type fox Pokémon from Generation 1.](images/vulpix.png){width="196"}
+![Fig 1. Darkrai, a Dark-type mythical Pokémon from Generation 4.]("C:\\Users\\Jonat\\OneDrive\\schoolwork\\PSTAT 131\\HW\\HW 5\\homework-5\\images\\Darkrai.png"){width="196"}
 
 The goal of this assignment is to build a statistical learning model that can predict the **primary type** of a Pokémon based on its generation, legendary status, and six battle statistics.
 
@@ -177,4 +179,6 @@ Prediction %>%
 Prediction %>%
   conf_mat(type_1, .pred_class) %>%
   autoplot(type = "heatmap")
+#Normal was predicted the most accurately while Grass was predicted the least accurately. Normal had 22 correct predictions while Grass had 0 correct predictions. I would say that Normal was the most accurate because it was second to the highest with observations (98). I think my model was able to find a pattern to accurately predict the Normal type. I think Grass contained 0 correct observations because the model was not able to find a consistent pattern that most/all Grass types contain.
 ```
+Normal was predicted the most accurately while Grass was predicted the 
