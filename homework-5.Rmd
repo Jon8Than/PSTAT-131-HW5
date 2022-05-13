@@ -45,10 +45,9 @@ Install and load the `janitor` package. Use its `clean_names()` function on the 
 library(janitor)
 
 Pokemon <- read.csv("C:\\Users\\Jonat\\OneDrive\\schoolwork\\PSTAT 131\\HW\\HW 5\\homework-5\\data\\Pokemon.csv")
-Pokemon
 Pokemon <- Pokemon %>%
   clean_names()
-Pokemon
+head(Pokemon)
 ```
 The clean_names() function just renamed or "cleaned" the predictor's names so it will be easier to code with.
 
