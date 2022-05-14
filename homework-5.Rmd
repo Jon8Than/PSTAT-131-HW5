@@ -69,7 +69,7 @@ barplot(type1, xlab = "Pokemon Type", ylab = "Pokemon in that type", main = "Pok
 Pokemon %>%
   group_by(type_1) %>%
   summarise(count = n()) %>%
-  arrange(desc(count)) # 18 types of Pokemon. Flying has the least types in this dataset (4). Fairy (17) and Ice (24) are followed up with the least amount of Pokemon in that type.
+  arrange(desc(count)) 
 
 Common_pokemon_types <- Pokemon %>%
    filter(type_1 == "Bug" | type_1 == "Fire" | type_1 == "Grass" | type_1 == "Normal" | type_1 == "Water" | type_1 == "Psychic")
@@ -83,6 +83,7 @@ Pokemon_factored <- Common_pokemon_types %>%
   mutate(legendary = factor(legendary)) %>%
   mutate(generation = factor(generation))
 ```
+18 types of Pokemon. Flying has the least types in this dataset (4). Fairy (17) and Ice (24) are followed up with the least amount of Pokemon in that type.
 
 
 ### Exercise 3
@@ -100,8 +101,9 @@ dim(Pokemon_training) #318 observations
 dim(Pokemon_testing) #140 observations
 
 Pokemon_fold <- vfold_cv(Pokemon_training, strata = type_1, v = 5)
-Pokemon_fold #Stratifying the folds will be useful because it will make sure there is a balance distribution of the types to make sure the folds are as fair as possible.
+Pokemon_fold
 ```
+Stratifying the folds will be useful because it will make sure there is a balance distribution of the types to make sure the folds are as fair as possible.
 
 ### Exercise 4
 
@@ -134,8 +136,9 @@ Pokemon_workflow <- workflow() %>%
   add_recipe(Pokemon_recipe) %>%
   add_model(Pokemon_net)
 Pokemon_grid <- grid_regular(penalty(range = c(-5,5)), mixture(range = c(0,1)), levels = 10)
-Pokemon_grid #We have 100 rows and we will be doing it 5 times so we will have a total of 500 models.
+Pokemon_grid
 ```
+We have 100 rows and we will be doing it 5 times so we will have a total of 500 models.
 
 ### Exercise 6
 
@@ -147,8 +150,9 @@ Use `autoplot()` on the results. What do you notice? Do larger or smaller values
 Pokemon_tune_grid <- tune_grid(object = Pokemon_workflow,
                                resamples = Pokemon_fold,
                                grid = Pokemon_grid)
-autoplot(Pokemon_tune_grid) #The smaller values of penalty and mixture  have a better accuracy and ROC AUC than the larger values of penalty and mixture. This means as the penalty and mixture increase, the accuracy and ROC AUC decreases.
+autoplot(Pokemon_tune_grid)
 ```
+The smaller values of penalty and mixture  have a better accuracy and ROC AUC than the larger values of penalty and mixture. This means as the penalty and mixture increase, the accuracy and ROC AUC decreases.
 
 ### Exercise 7
 
@@ -178,6 +182,5 @@ Prediction %>%
 Prediction %>%
   conf_mat(type_1, .pred_class) %>%
   autoplot(type = "heatmap")
-#Normal was predicted the most accurately while Grass was predicted the least accurately. Normal had 22 correct predictions while Grass had 0 correct predictions. I would say that Normal was the most accurate because it was second to the highest with observations (98). I think my model was able to find a pattern to accurately predict the Normal type. I think Grass contained 0 correct observations because the model was not able to find a consistent pattern that most/all Grass types contain.
 ```
-Normal was predicted the most accurately while Grass was predicted the 
+Normal was predicted the most accurately while Grass was predicted the least accurately. Normal had 22 correct predictions while Grass had 0 correct predictions. I would say that Normal was the most accurate because it was second to the highest with observations (98). I think my model was able to find a pattern to accurately predict the Normal type. I think Grass contained 0 correct observations because the model was not able to find a consistent pattern that most/all Grass types contain.
